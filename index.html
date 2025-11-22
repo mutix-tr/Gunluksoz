@@ -22,7 +22,7 @@
     .card {
       background: white;
       border-radius: 24px;
-      padding: 30px;
+      padding: 25px;
       max-width: 800px;
       width: 100%;
       text-align: center;
@@ -34,12 +34,92 @@
       margin: 20px 0;
       color: #1a1a1a;
       font-weight: 600;
+      hyphens: auto;
     }
     .author {
       font-style: italic;
       color: #555;
       font-size: 19px;
     }
+
+    /* Çerçeve Seçici */
+    .frame-selector {
+      display: flex;
+      justify-content: flex-start;
+      gap: 12px;
+      margin: 15px 0 10px;
+      padding: 0 10px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .frame-selector::-webkit-scrollbar { display: none; }
+
+    .frame-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 14px;
+      border: 2px solid #ddd;
+      border-radius: 16px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #444;
+      transition: all 0.2s ease;
+      min-width: 85px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    .frame-option:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    }
+    .frame-option.active {
+      border-color: #6a11cb;
+      background: #f0e6ff;
+      color: #6a11cb;
+      font-weight: 700;
+    }
+    .frame-option span {
+      font-size: 22px;
+      margin-bottom: 4px;
+    }
+
+    /* Önizleme */
+    #preview {
+      width: 100px;
+      height: 100px;
+      margin: 10px auto;
+      border-radius: 12px;
+      border: 2px solid #eee;
+      transition: background 0.3s ease;
+    }
+
+    /* Format Seçici */
+    .format-selector {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin: 15px 0;
+      flex-wrap: wrap;
+    }
+    .format-btn {
+      padding: 8px 14px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .format-btn.active {
+      background: #e3f2fd;
+      border-color: #2196F3;
+      color: #1976D2;
+    }
+
+    /* Butonlar */
     .buttons {
       display: flex;
       justify-content: center;
@@ -67,36 +147,50 @@
       color: white;
       display: none;
       margin-top: 10px;
+      width: 80%;
     }
-    #frameSelect {
-      padding: 10px;
-      border-radius: 12px;
-      border: 2px solid #ddd;
-      font-size: 14px;
-      margin: 10px auto;
-      max-width: 250px;
-    }
-    canvas { position: absolute; left: -9999px; }
     .status {
       margin-top: 12px;
       font-size: 14px;
       color: #555;
     }
+    canvas { position: absolute; left: -9999px; }
   </style>
 </head>
 <body>
   <div class="card">
-    <h2>SözSanatı</h2>
+    <h2 style="margin-bottom:15px;">SözSanatı</h2>
     <p class="quote" id="quote">Yükleniyor...</p>
     <p class="author" id="author">– Anonim</p>
 
-    <select id="frameSelect">
-      <option value="minimal">Minimal</option>
-      <option value="gold">Altın Çerçeve</option>
-      <option value="twitter">𝕏 Alıntısı</option>
-      <option value="dramatic">Dramatik Siyah</option>
-    </select>
+    <!-- Çerçeve Seçici -->
+    <div class="frame-selector" id="frameSelector">
+      <div class="frame-option active" data-frame="minimal" title="Minimal">
+        <span>🔲</span> Minimal
+      </div>
+      <div class="frame-option" data-frame="gold" title="Altın">
+        <span>🌟</span> Altın
+      </div>
+      <div class="frame-option" data-frame="twitter" title="𝕏 Alıntısı">
+        <span>𝕏</span> Twitter
+      </div>
+      <div class="frame-option" data-frame="dramatic" title="Dramatik">
+        <span>🖤</span> Dramatik
+      </div>
+    </div>
 
+    <!-- Mini Önizleme -->
+    <div id="preview"></div>
+
+    <!-- Format Seçici -->
+    <div class="format-selector">
+      <div class="format-btn active" data-format="square">Kare</div>
+      <div class="format-btn" data-format="instagram">IG</div>
+      <div class="format-btn" data-format="whatsapp">WA</div>
+      <div class="format-btn" data-format="twitter">𝕏</div>
+    </div>
+
+    <!-- Butonlar -->
     <div class="buttons">
       <button id="newBtn">Yeni Söz</button>
       <button id="copyBtn">Kopyala</button>
@@ -118,9 +212,11 @@
   <script src="quotes.js"></script>
   <script>
     let currentQuote = null;
+    let selectedFrame = 'minimal';
+    let selectedFormat = 'square';
     let deferredPrompt = null;
 
-    // PWA install prompt
+    // PWA Kurulum Uyarısı
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
@@ -148,6 +244,38 @@
       currentQuote = q;
     }
 
+    // Çerçeve Seçimi
+    document.querySelectorAll('.frame-option').forEach(option => {
+      option.addEventListener('click', () => {
+        document.querySelectorAll('.frame-option').forEach(el => el.classList.remove('active'));
+        option.classList.add('active');
+        selectedFrame = option.dataset.frame;
+        updatePreview();
+      });
+    });
+
+    // Format Seçimi
+    document.querySelectorAll('.format-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedFormat = btn.dataset.format;
+      });
+    });
+
+    // Önizleme Güncelle
+    function updatePreview() {
+      const preview = document.getElementById('preview');
+      const bgColors = {
+        minimal: '#FFFFFF',
+        gold: '#000000',
+        twitter: '#15202B',
+        dramatic: '#000000'
+      };
+      preview.style.backgroundColor = bgColors[selectedFrame];
+    }
+    updatePreview();
+
     // Kopyala
     document.getElementById('copyBtn').onclick = async () => {
       try {
@@ -159,87 +287,80 @@
       setTimeout(() => document.getElementById('status').textContent = '', 2000);
     };
 
-    // Yeni söz
+    // Yeni Söz
     document.getElementById('newBtn').onclick = showRandomQuote;
 
-    // İndir (Canvas ile)
-    document.getElementById('downloadBtn').onclick = () => {
-      const frame = document.getElementById('frameSelect').value;
-      downloadAsImage(frame);
+    // Format boyutları
+    const FORMAT_SIZES = {
+      square: { w: 800, h: 800, pad: 100 },
+      instagram: { w: 1080, h: 1080, pad: 120 },
+      whatsapp: { w: 1080, h: 1920, pad: 150 },
+      twitter: { w: 1200, h: 675, pad: 100 }
     };
 
-    // Görsel indirme fonksiyonu
-    function downloadAsImage(frameType) {
+    // Stil renkleri
+    const STYLE_COLORS = {
+      minimal: { bg: '#FFFFFF', text: '#111', author: '#555' },
+      gold: { bg: '#000000', text: '#FFD700', author: '#FFD700' },
+      twitter: { bg: '#15202B', text: '#FFFFFF', author: '#1DA1F2' },
+      dramatic: { bg: '#000000', text: '#FFD700', author: '#FFD700' }
+    };
+
+    // Metni satır satır böl
+    function wrapText(ctx, text, maxWidth) {
+      const words = text.split(' ');
+      const lines = [];
+      let line = words[0] || '';
+      for (let i = 1; i < words.length; i++) {
+        const test = line + ' ' + words[i];
+        if (ctx.measureText(test).width < maxWidth) {
+          line = test;
+        } else {
+          lines.push(line);
+          line = words[i];
+        }
+      }
+      lines.push(line);
+      return lines;
+    }
+
+    // İndir
+    document.getElementById('downloadBtn').onclick = () => {
+      const fmt = FORMAT_SIZES[selectedFormat];
+      const style = STYLE_COLORS[selectedFrame];
       const canvas = document.getElementById('quoteCanvas');
       const ctx = canvas.getContext('2d');
-      const w = 800, h = 800;
-      canvas.width = w;
-      canvas.height = h;
 
-      // Stil ayarları
-      let bgColor, textColor, authorColor;
-      if (frameType === 'gold' || frameType === 'dramatic') {
-        bgColor = '#000';
-        textColor = '#FFD700';
-        authorColor = '#FFD700';
-      } else if (frameType === 'twitter') {
-        bgColor = '#15202B';
-        textColor = '#FFFFFF';
-        authorColor = '#1DA1F2';
-      } else {
-        bgColor = '#FFFFFF';
-        textColor = '#111';
-        authorColor = '#555';
-      }
+      canvas.width = fmt.w;
+      canvas.height = fmt.h;
 
-      ctx.fillStyle = bgColor;
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = style.bg;
+      ctx.fillRect(0, 0, fmt.w, fmt.h);
 
-      // Yazı
-      ctx.fillStyle = textColor;
-      ctx.font = 'bold 48px Poppins';
+      const maxFontSize = Math.min(72, Math.floor(fmt.w / 15));
+      ctx.font = `bold ${maxFontSize}px Poppins`;
+      ctx.fillStyle = style.text;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      const quote = currentQuote.q;
-      const author = `– ${currentQuote.a}`;
-      const maxWidth = w - 120;
-
-      // Satır bölme
-      function wrapText(text, maxWidth) {
-        const words = text.split(' ');
-        let line = '';
-        const lines = [];
-        for (let i = 0; i < words.length; i++) {
-          const testLine = line + words[i] + ' ';
-          if (ctx.measureText(testLine).width > maxWidth) {
-            lines.push(line.trim());
-            line = words[i] + ' ';
-          } else {
-            line = testLine;
-          }
-        }
-        lines.push(line.trim());
-        return lines;
-      }
-
-      const lines = wrapText(quote, maxWidth);
-      const yStart = (h - (lines.length * 60 + 80)) / 2;
+      const lines = wrapText(ctx, currentQuote.q, fmt.w - fmt.pad * 2);
+      const lineHeight = maxFontSize * 1.3;
+      const totalHeight = lines.length * lineHeight + 80;
+      let y = (fmt.h - totalHeight) / 2;
 
       lines.forEach((line, i) => {
-        ctx.fillText(line, w / 2, yStart + i * 60);
+        ctx.fillText(line, fmt.w / 2, y + i * lineHeight);
       });
 
-      ctx.fillStyle = authorColor;
-      ctx.font = '32px Poppins';
-      ctx.fillText(author, w / 2, yStart + lines.length * 60 + 60);
+      ctx.fillStyle = style.author;
+      ctx.font = `normal ${Math.floor(maxFontSize * 0.6)}px Poppins`;
+      ctx.fillText(`– ${currentQuote.a}`, fmt.w / 2, y + lines.length * lineHeight + 60);
 
-      // İndir
       const link = document.createElement('a');
-      link.download = `sozsanati-${frameType}.png`;
+      link.download = `sozsanati-${selectedFrame}-${selectedFormat}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-    }
+    };
 
     // Paylaşım
     document.getElementById('twitterBtn').onclick = () => {
