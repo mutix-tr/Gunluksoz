@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Günlük Türkçe sözler – indir, paylaş, boşver.">
+  <title>SözSanatı</title>
+  <link rel="manifest" href="manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-180.png">
+  <meta name="theme-color" content="#6a11cb">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+    body {
+      background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+    }
+    .card {
+      background: white;
+      border-radius: 24px;
+      padding: 35px;
+      max-width: 800px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    }
+    .quote {
+      font-size: 26px;
+      line-height: 1.6;
+      margin: 20px 0;
+      color: #1a1a1a;
+      font-weight: 600;
+    }
+    .author {
+      font-style: italic;
+      color: #555;
+      font-size: 19px;
+    }
+    .buttons {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 15px 0;
+    }
+    button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 50px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: 0.2s;
+      font-weight: 600;
+    }
+    #newBtn { background: #4CAF50; color: white; }
+    #copyBtn { background: #2196F3; color: white; }
+    #downloadBtn { background: #FF5722; color: white; }
+    #twitterBtn { background: #1DA1F2; color: white; }
+    #whatsappBtn { background: #25D366; color: white; }
+    canvas { position: absolute; left: -9999px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>SözSanatı</h2>
+    <p class="quote" id="quote">Yükleniyor...</p>
+    <p class="author" id="author">– Anonim</p>
+    <div class="buttons">
+      <button id="newBtn">Yeni Söz</button>
+      <button id="copyBtn">Kopyala</button>
+      <button id="downloadBtn">İndir</button>
+      <button id="twitterBtn">𝕏</button>
+      <button id="whatsappBtn">WA</button>
+    </div>
+    <p id="status" style="margin-top:15px; font-size:14px; color:#666;"></p>
+  </div>
+  <canvas id="quoteCanvas"></canvas>
+
+  <!-- Sözleri yükle -->
+  <script src="quotes.js"></script>
+  <script>
+    let currentQuote = null;
+
+    // Söz göster
+    function showRandomQuote() {
+      const q = TURKISH_QUOTES[Math.floor(Math.random() * TURKISH_QUOTES.length)];
+      document.getElementById('quote').textContent = q.q;
+      document.getElementById('author').textContent = `– ${q.a}`;
+      currentQuote = q;
+    }
+
+    // Kopyala
+    document.getElementById('copyBtn').onclick = async () => {
+      await navigator.clipboard.writeText(`${currentQuote.q}\n\n${currentQuote.a}`);
+      document.getElementById('status').textContent = '✓ Kopyalandı!';
+      setTimeout(() => document.getElementById('status').textContent = '', 2000);
+    };
+
+    // Yeni söz
+    document.getElementById('newBtn').onclick = showRandomQuote;
+
+    // İndir (basit canvas)
+    document.getElementById('downloadBtn').onclick = () => {
+      alert('İndirme özelliği mobilde sınırlı. Twitter/WhatsApp ile paylaşabilirsiniz.');
+    };
+
+    // Paylaşım
+    document.getElementById('twitterBtn').onclick = () => {
+      const txt = `"${currentQuote.q}" — ${currentQuote.a}`;
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(txt)}`, '_blank');
+    };
+    document.getElementById('whatsappBtn').onclick = () => {
+      const txt = `"${currentQuote.q}"\n— ${currentQuote.a}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank');
+    };
+
+    // PWA Kayıt
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(reg => {
+          console.log('SW registered');
+          // Bildirim izni
+          Notification.requestPermission();
+        });
+      });
+    }
+
+    // Başlat
+    showRandomQuote();
+  </script>
+</body>
+</html>
